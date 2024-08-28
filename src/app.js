@@ -1,4 +1,4 @@
-import express from "express"
+import express, { Router } from "express"
 import cookieParser from "cookie-parser";
 import cors from "cors"
 
@@ -18,4 +18,9 @@ app.use(express.urlencoded({
 app.use(express.static("puplic"))
 
 app.use(cookieParser())
+
+import userRouter from "./routes/user.routes.js";
+
+app.use("/api/v1/users",userRouter)
+
 export {app}
