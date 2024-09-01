@@ -9,8 +9,7 @@ import { v2 as cloudinary } from 'cloudinary';
 
 
 const uploadOnClodinary=(localFilePath) => {
- 
-    try{
+   try{
         if(!localFilePath) return null
        const response= cloudinary.uploader.upload(localFilePath,{resource_type:"auto"})
        console.log("file is uploaded on cloudinary",response.url)
@@ -18,7 +17,11 @@ const uploadOnClodinary=(localFilePath) => {
     }catch(error){
             console.log(err)
             fs.unlinkSync(localFilePath)
-
-    }
-   
+            //remove the locally saved temporary file as the and upload to got failed
+            return null;
+        }
 }
+
+export default uploadOnClodinary;
+
+

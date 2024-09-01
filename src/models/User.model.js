@@ -55,7 +55,7 @@ UserSchema.pre("save", async function (next) {
      
     if(!this.isModified("passward")) return next();
 
-    this.passward=bcrypt.hash(this.passward,10)
+    this.passward=  await bcrypt.hash(this.passward,10)
     next()
 })
 
@@ -64,6 +64,6 @@ UserSchema.methods.isPasswordCorrect = async function (passward){
     return await bcrypt.compare(passward,this.passward)
 }
 
-export const User=mongoose.model("User",UserSchema)
+export const User = mongoose.model("User",UserSchema)
 
 
