@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/User.model.js"
-import {uploadOnClodinary} from "../utils/clodinary.uploadFile.js"
+import uploadOnClodinary from "../utils/clodinary.uploadFile.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const registerUser = asyncHandler(async (req,res)=>{
@@ -27,7 +27,7 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(400,"all field are  required")
     }
 
-     const   existedUSer=User.findOne({
+     const   existedUSer=  await User.findOne({
              $or:[{username},{email}]
          })
 
@@ -36,15 +36,21 @@ const registerUser = asyncHandler(async (req,res)=>{
     }
 
     const avatarLocalPath=req.files?.avatar[0]?.path;
-   const coverImageLocalPath = req.files?.coverImage[0]?.path;
+  //  const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+  let coverImageLocalPath ;
+  if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+    coverImageLocalPath = req.files.coverImage[0].path
+  }   //we doing this in this way becouse we do not want to throw error from this this will be the optional
 
 
    if(!avatarLocalPath){
+    console.log("mere joota japani")
     throw new ApiError(400,"avatar image is required")
    }
 
    const avatar= await uploadOnClodinary(avatarLocalPath) 
-   const covsrImage= await uploadOnClodinary(avatarLocalPath) 
+   const coverImage= await uploadOnClodinary(coverImageLocalPath) 
 
    if(!avatar){
     throw new ApiError(400,"avatar image is required")
@@ -54,7 +60,7 @@ const registerUser = asyncHandler(async (req,res)=>{
    const user= await User.create({
     fullname,
     avatar:avatar.url,
-    covsrImage:covsrImage?.url || "",
+    coverImage:coverImage?.url || "",
     email,
     password,
     username:username.toLowerCase()
@@ -70,10 +76,15 @@ const registerUser = asyncHandler(async (req,res)=>{
   }
 
   return res.status(201).json(
-    new ApiResponse(200,createdUser,"User Registered Successfully")
+    new ApiResponse(200,createdUser,"User Registered Successfully") 
   )
    
 })
 
+const loginUser = asyncHandler(async (req,res)=>{
+     //req-body -> data
+     //userName and email
+})
 
-export default registerUser; 
+
+export {registerUser,loginUser}; 
