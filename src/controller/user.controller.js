@@ -4,6 +4,23 @@ import {User} from "../models/User.model.js"
 import uploadOnClodinary from "../utils/clodinary.uploadFile.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const generateAccessandRefreshTokens= async (userId) =>
+  {
+try {
+    const user =await User.findById(userId)
+    const accessToken =user.generateAccessToken()
+    const refreshToken=user.generateRefreshToken()
+
+        user.refreshToken = refreshToken   //i am storing the refresh tocken to our database 
+     await user.save({validateBeforeSave :false})  //and after storing the refresh token in database it stored we have save this  to database validateBeforeSave: false Mongoose is used to skip validation checks
+
+
+     return {accessToken , refreshToken}
+} catch (error) {
+  throw new ApiError(500,"something went wrong while genrating refresh and access tocken")
+}
+}
+
 const registerUser = asyncHandler(async (req,res)=>{
         //get user detail from frontend
         //validation-not empty
@@ -84,7 +101,83 @@ const registerUser = asyncHandler(async (req,res)=>{
 const loginUser = asyncHandler(async (req,res)=>{
      //req-body -> data
      //userName and email
+     //find the user
+     //password check
+     //access and refresh tocken
+     //send cookies
+
+     const {email,username,password} = req.body;
+
+     if(!username || !email){
+      throw new ApiError (400,"username or email is required")
+     }
+
+     const user = await User.findOne({
+      $or:[{username} ,{email}]
+     })
+
+     if(!user){
+      throw new ApiError(404,"user does not exist")
+     }
+
+     const isPasswordisValid= await user.isPasswordCorrect(password);
+
+     if(!isPasswordisValid){
+      throw new ApiError(401,"invalid user credential")
+     }
+
+       const {accessToken,refreshToken} =await generateAccessandRefreshTokens(user._id)
+
+       const loggedInUser =await User.findById(user._id).select("-password -refreshTocken ")
+
+       const options={
+           httpOnly: true,
+           secure:true
+       }   // hame jab bhi cookies bhejne hote hai to hame kuch option define karne hote hai 
+           //jo hamari cookies hoti hai by defoult use koi bhi modify kar deta hai frontend me  we have to avoid this
+           //jab bhi humhttpOnly: true, secure:true  to ye cookies kewal server se modifiable hoti hai
+
+       return res.status(200)
+       .cookie("accessToken",accessToken,options)
+       .cookie("refreshToken",refreshToken,options)
+       .json(
+        new ApiResponse(200,
+          {
+            user:loggedInUser,accessToken,refreshToken
+          },
+          "User logged in successfully"
+        )
+       )
+     
+   
+
+     
 })
 
 
-export {registerUser,loginUser}; 
+const logoutUser =asyncHandler(async (req,res)=>{
+
+       await User.findByIdAndUpdate(
+        req.user._id, {
+          $set: {
+            refreshToken: undefined
+          }
+        },
+        {
+          new: true   //is code ya function ke exicute hone ke bad jo return me hame value milegi wo new updated value milegi
+        }
+      )
+      const options={
+        httpOnly: true,
+        secure:true
+       } 
+
+       return res.status(200).clearCookie("accessToken",options)
+       .clearCookie("refreshToken",options)
+       .json(new ApiResponse (200,{},"user logged out"))
+       
+      
+})
+
+
+export {registerUser,loginUser,logoutUser}; 
