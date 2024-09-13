@@ -8,15 +8,30 @@ const generateAccessandRefreshTokens= async (userId) =>
   {
 try {
     const user =await User.findById(userId)
+
+    if (!user) {
+      console.error("User not found");
+      throw new Error("User not found");
+    }
+
     const accessToken =user.generateAccessToken()
     const refreshToken=user.generateRefreshToken()
 
+    
+
+    console.log("Generated access token:", accessToken);
+    console.log("Generated refresh token:", refreshToken);
+
+
         user.refreshToken = refreshToken   //i am storing the refresh tocken to our database 
      await user.save({validateBeforeSave :false})  //and after storing the refresh token in database it stored we have save this  to database validateBeforeSave: false Mongoose is used to skip validation checks
+    //user.save({ validateBeforeSave: false });
 
+    console.log("Tokens saved to user:", user);
 
      return {accessToken , refreshToken}
 } catch (error) {
+  console.error("Error in generateAccessandRefreshTokens:", error);
   throw new ApiError(500,"something went wrong while genrating refresh and access tocken")
 }
 }
@@ -79,7 +94,7 @@ const registerUser = asyncHandler(async (req,res)=>{
     avatar:avatar.url,
     coverImage:coverImage?.url || "",
     email,
-    password,
+    password, //: await bcrypt.hash(password, 10)
     username:username.toLowerCase()
  })
   
@@ -108,7 +123,7 @@ const loginUser = asyncHandler(async (req,res)=>{
 
      const {email,username,password} = req.body;
 
-     if(!username || !email){
+     if(!(username || email)){
       throw new ApiError (400,"username or email is required")
      }
 
@@ -123,7 +138,9 @@ const loginUser = asyncHandler(async (req,res)=>{
      const isPasswordisValid= await user.isPasswordCorrect(password);
 
      if(!isPasswordisValid){
-      throw new ApiError(401,"invalid user credential")
+      console.log(isPasswordisValid)
+      console.log("boolean value",assword)
+      throw new ApiError(401,"invalid user credential mainly password is not")
      }
 
        const {accessToken,refreshToken} =await generateAccessandRefreshTokens(user._id)
@@ -174,7 +191,7 @@ const logoutUser =asyncHandler(async (req,res)=>{
 
        return res.status(200).clearCookie("accessToken",options)
        .clearCookie("refreshToken",options)
-       .json(new ApiResponse (200,{},"user logged out"))
+       .json(new ApiResponse (200,{},"user logged o"))
        
       
 })

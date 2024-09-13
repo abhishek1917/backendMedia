@@ -1,6 +1,7 @@
 import mongoose  ,{ Schema } from "mongoose";
 import bcrypt from "bcryptjs"
-import jwt from "json-web-token"
+import jwt from "jsonwebtoken" 
+  
 
 const UserSchema = new mongoose.Schema({
     username:{
@@ -53,11 +54,14 @@ const UserSchema = new mongoose.Schema({
 
 },  {timestamps:true})
 //here we are trying to make ur password sequare before it is going to be in database as this is the function which will going to run first 
+
+
 UserSchema.pre("save", async function (next) {
      
-    if(!this.isModified("passward")) return next();
+    if(!this.isModified("password")) return next();
 
-    this.passward =  await bcrypt.hash(this.passward,10)
+    this.password = await bcrypt.hash(this.password,10)
+    //console.log("bycrpt compare of the password:", this.password)
     next()
 })
 
@@ -78,20 +82,21 @@ UserSchema.methods.generateAccessToken = function(){
  
 
 UserSchema.methods.generateRefreshToken = function(){
-   return  jwt.sign(
+   return  jwt.sign (
     {
         _id: this._id,
     },
     process.env.REFRESH_TOKEN_SECRET,
     {
-        expireIn: process.env.REFRESH_TOKEN_EXPIRY
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     }
    )
 }
 
 
-UserSchema.methods.isPasswordCorrect = async function (passward){
-    return await bcrypt.compare(passward,this.passward)
+UserSchema.methods.isPasswordCorrect = async function (password){
+      console.log("bycrpt compare of the password:",password,this.password)
+    return await bcrypt.compare(password,this.password)
 }   // here we can see we are injecting the method name is password is correct which will going to return the true or false value in future
 
 export const User = mongoose.model("User",UserSchema)
