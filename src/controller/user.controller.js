@@ -60,11 +60,11 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(400,"all field are  required")
     }
 
-     const   existedUSer=  await User.findOne({
+     const   existedUser=  await User.findOne({
              $or:[{username},{email}]
          })
 
-    if(existedUSer){
+    if(existedUser){
       throw new ApiError(409,"user with username and email already exist")
     }
 
@@ -298,5 +298,70 @@ const updateAccountDetails =asyncHandler(async (req,res)=>{
 //pre function  use karenge jaise ki hamne yahan kiya hai ****router.route("/logout").post(verifyJWT,logoutUser)****   verifyJWT ye hame access deta hai user ka .
  
 
-const updateUserAvatar = asyncHandler()
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails}; 
+const updateUserAvatar = asyncHandler(async (req,res)=>{
+
+  const avatarLocalPath = req.files?.avatar[0]?.path
+
+  if(!avatarLocalPath){
+    throw new ApiError(401,"there is no local file path for avatar")
+  }
+
+  const avatar = await uploadOnClodinary(avatarLocalPath);
+
+  if(!avatar.url){
+    throw new ApiError(401,"error while uploading avatar")
+  }
+  
+   const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        avatar:avatar.url
+      }
+    },
+    {new: true}
+   ).select("-password")
+
+    
+   return res
+   .status(200)
+   .json(
+    new ApiResponse(200,user,"avatar Updated succefully")
+   )
+})
+
+const updateUserCoverImage = asyncHandler(async (req,res)=>{
+
+
+  const coverImageLocalPath = req.file?.path   //files ka access hame tabhi milta hai jab hum multer middleware use karte hai  or yahan hum log sirf file use karenge  insted of files 
+
+  if(!coverImageLocalPath){
+    throw new ApiError(401,"there is no local file path missing cover image")
+  }
+
+  const coverImage = await uploadOnClodinary(coverImageLocalPath);
+
+  if(!coverImage.url){
+    throw new ApiError(401,"error while uploading cover image")
+  }
+  
+  const user= await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set:{
+        coverImage:coverImage.url
+      }
+    },
+    {new: true}
+   ).select("-password")
+
+
+   return res
+   .status(200)
+   .json(
+    new ApiResponse(200,user,"coverImage Updated succefully")
+   )
+
+
+})
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails,updateUserAvatar,updateUserCoverImage}; 
