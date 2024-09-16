@@ -239,5 +239,64 @@ const refreshAccessToken =asyncHandler(async (req,res)=>{
 
 })
 
+const changeCurrentPassword =asyncHandler(async (req,res)=>{
+  const {oldPassword,newPassword}=req.body //ye dono hame user se milenge
+  
+  const user = User.findById(req.user?._id)
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken}; 
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+  if(!isPasswordCorrect){
+    throw new ApiError(401,"the password is not ccorrect")
+  }
+
+  user.password=newPassword
+
+    await user.save({validateBeforeSave:false})
+
+
+    return res.status(200)
+    .json(new ApiResponse(
+      200,
+      {},
+      "password change succesfully"
+    ))
+
+
+})
+
+const getCurrentUser =  asyncHandler(async (req,res)=>{
+  return res.status(200)
+  .json(new ApiResponse(
+    200,
+    req.user,
+    "current user fetch succefully"
+  )) 
+})
+
+const updateAccountDetails =asyncHandler(async (req,res)=>{
+    const {fullname,email}= req.body
+
+    if(!(fullname || email)){
+      throw new ApiError(400,"all field are required")
+    }
+
+    const user = User.findByIdAndUpdate(
+      req.user?._id,
+      {
+        $set: {
+          fullname,   //or we can write as fullname: fullname
+          email:email,
+        }
+      },
+      {new :true} //sari cheeze update karne ke bad ye hame nayi value ko return kar dega
+     ).select("-password")
+
+     return res.status(200).json(new ApiResponse(200,user,"Accout details updated succesfully"))
+})
+
+//getCurrentUser,updateAccountDetails,changeCurrentPassword to hame kaise req.body ka access yahan mil raha hai to ye hame jab ham in function ko use karenge to jwt.verify ko pehle 
+//pre function  use karenge jaise ki hamne yahan kiya hai ****router.route("/logout").post(verifyJWT,logoutUser)****   verifyJWT ye hame access deta hai user ka .
+ 
+
+const updateUserAvatar = asyncHandler()
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,updateAccountDetails}; 
