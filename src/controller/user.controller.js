@@ -24,7 +24,7 @@ try {
     console.log("Generated refresh token:", refreshToken);
 
 
-        user.refreshToken = refreshToken   //i am storing the refresh tocken to our database 
+     user.refreshToken = refreshToken   //i am storing the refresh tocken to our database 
      await user.save({validateBeforeSave :false})  //and after storing the refresh token in database it stored we have save this  to database validateBeforeSave: false Mongoose is used to skip validation checks
     //user.save({ validateBeforeSave: false });
 
@@ -441,8 +441,72 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
 })
 
 
+const getWatchedHistory =asyncHandler(async (req,res)=>{
+  const user =await User.aggregate([
+    {
+      $match :{
+        _id: new mongoose.Types.ObejectId(req.user._id)   //kis model ki id ka use karke hame connect karna hai apni pipeline ko
+      }
+    },
+    {
+      $lookup:{
+        from:"video",   //kis model me look up karna hai ya dekhna hai
+        localField: "watchHistory",  //kis local field ko hame obsever karna hai jo bhi madel me hum look up kar rahen hai
+        foreignField:"_id" , //upside field kya hai hamari
+        as:"watchHistory",   //abb hame ye sara document mil gaya hai or hum use nam dete hai watch history
+             
+          //yahan par hamare pas watchhistory me videos  ka ek document ban gaya hai jo ki watch history me store hai but hame chahiye kya ki hum owner ka data chahiye to wo to owner ke  ke andar store hai (objectid user) ke form me jo basically user hi hai
+          //yahan hum log inbuild pipeline ka istemal karenge  owner ke andar se user  ko access karne ke liye
+
+          pipeline:[
+            {
+              $lookup:{
+                 from:"users",
+                 localField:"owner",
+                 foreignField:"_id",
+                 as:"owner",
+                 pipeline:[
+                      {   //yahan hum log ise bahar bhi likh sakte the magar yahan par hum ye dekh rahe hai ki jo hamara owner field hai usme data bahit sara hai use controll karna seekh rahe hai
+                        $project:{
+                          fullname:1,
+                          username:1,
+                          avatar:1,
+                        }
+                      }
+                 ]
+              }
+            } ,
+            //sara deta owner ke field me hai or yahan mere pass array aya hai or hum us array ko sudharna chahte hai
+            {
+              $addFields:{
+                //yahan humne iska nam owner rakhan hai kuch or bhi rakh sakte hai magar agar humne nam same hi rahan hai to ye over ride ho jayega 
+                  owner:{
+                    $first:"$owner"  //yahan hum log first element nikal rahen hai 
+                  }
+              }
+            }
+          ]
+
+     
+     
+      }
+    }
+
+  ])
+
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(
+      200,
+      user[0].watchHistory ,
+      "watch history fetch succefully"
+    )
+  )
+})
+
 
 
 
 export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,
-  updateAccountDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile}; 
+  updateAccountDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getWatchedHistory}; 
