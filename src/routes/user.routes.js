@@ -45,6 +45,8 @@ router.route("./avatra-update").patch(verifyJWT,upload.single("avatar"),updateUs
 
 router.route("./coverImage-update").patch(verifyJWT,upload.single("coverIage"),updateUserCoverImage)
 
+//upload.single("coverIage") ye multer ka ek function hai jo sirf single file ko upload karne ke liye use hota hai or bracket me sirf or sirf nam hai jo hum kuch bhi rakh sakte hai
+
 
 router.route("./channel/:username").get(verifyJWT,getUserChannelProfile)
 //yahan jo username hai vo same hona chahiye apne function ka or hum isme : (collans use karenge)
