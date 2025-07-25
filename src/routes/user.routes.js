@@ -49,12 +49,6 @@ router.route("/coverImage-update").patch(verifyJWT, upload.single("coverImage"),
 
 
 router.route("/channel/:username").get(verifyJWT, getUserChannelProfile)
-//yahan jo username hai vo same hona chahiye apne function ka or hum isme : (collans use karenge)
-
-
 router.route("/history").get(verifyJWT, getWatchedHistory)
-
-
-
 
 export default router

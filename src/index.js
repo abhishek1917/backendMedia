@@ -4,48 +4,25 @@ import dotenv from "dotenv";
 import { app } from "./app.js";
 
 dotenv.config({
-    path: "./.env" // Fixed: was "./env"
+    path: "./.env"
 })
 
+// Add environment check
+if (!process.env.MONGODB_URI) {
+    console.error("MONGODB_URI is not defined in environment variables");
+    process.exit(1);
+}
+
 connectDB()
-.then(
-    ()=>{
-        app.listen(process.env.PORT || 5000, ()=>{
-            console.log(`server is running at port : ${process.env.PORT}`)
-        })
-    }
-)
-.catch(
-    (err)=>{
-        console.log(` this is the error ${err}`)
-        throw err
-    }
-)
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.then(() => {
+    app.listen(process.env.PORT || 5000, () => {
+        console.log(`Server is running at port: ${process.env.PORT || 5000}`)
+    })
+})
+.catch((err) => {
+    console.log(`MongoDB connection error: ${err}`)
+    process.exit(1)
+})
 
 
 

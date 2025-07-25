@@ -3,10 +3,10 @@ import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/User.model.js"
 import uploadOnCloudinary from "../utils/cloudinary.uploadFile.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken" 
+import jwt from "jsonwebtoken"
+import mongoose from "mongoose";
 
-const generateAccessandRefreshTokens= async (userId) =>
-  {
+const generateAccessAndRefreshTokens = async (userId) => {
 try {
     const user =await User.findById(userId)
 
@@ -32,7 +32,7 @@ try {
 
      return {accessToken , refreshToken}
 } catch (error) {
-  console.error("Error in generateAccessandRefreshTokens:", error);
+  console.error("Error in generateAccessAndRefreshTokens:", error);
   throw new ApiError(500,"something went wrong while genrating refresh and access tocken")
 }
 }
@@ -101,7 +101,7 @@ const registerUser = asyncHandler(async (req,res)=>{
   
 
   const createdUser= await  User.findById(user._id).select(
-    "-password -refreshTocken"   //here we write what we do not want
+    "-password -refreshToken"   //here we write what we do not want
   )
 
   if(!createdUser){
@@ -142,9 +142,9 @@ const loginUser = asyncHandler(async (req,res)=>{
       throw new ApiError(401, "Invalid user credentials")
      }
 
-       const {accessToken,refreshToken} =await generateAccessandRefreshTokens(user._id)
+       const {accessToken,refreshToken} =await generateAccessAndRefreshTokens(user._id)
 
-       const loggedInUser =await User.findById(user._id).select("-password -refreshTocken ")
+       const loggedInUser =await User.findById(user._id).select("-password -refreshToken")
 
        const options={
            httpOnly: true,
@@ -190,7 +190,7 @@ const logoutUser =asyncHandler(async (req,res)=>{
 
        return res.status(200).clearCookie("accessToken",options)
        .clearCookie("refreshToken",options)
-       .json(new ApiResponse (200,{},"user logged o"))
+       .json(new ApiResponse(200, {}, "User logged out successfully"))
        
       
 })
@@ -218,7 +218,7 @@ const refreshAccessToken =asyncHandler(async (req,res)=>{
    secure:true
   }
     
-   const {accessToken,newRefreshToken} = await generateAccessandRefreshTokens(user?._id)
+   const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user?._id)
  
    return res
    .status(200) // Fixed: was .secure(200)
@@ -256,7 +256,7 @@ const changeCurrentPassword =asyncHandler(async (req,res)=>{
     .json(new ApiResponse(
       200,
       {},
-      "password change succesfully"
+      "Password changed successfully"
     ))
 
 
@@ -267,7 +267,7 @@ const getCurrentUser =  asyncHandler(async (req,res)=>{
   .json(new ApiResponse(
     200,
     req.user,
-    "current user fetch succefully"
+    "Current user fetched successfully"
   )) 
 })
 
@@ -289,7 +289,7 @@ const updateAccountDetails =asyncHandler(async (req,res)=>{
       {new :true} //sari cheeze update karne ke bad ye hame nayi value ko return kar dega
      ).select("-password")
 
-     return res.status(200).json(new ApiResponse(200,user,"Accout details updated succesfully"))
+     return res.status(200).json(new ApiResponse(200,user,"Account details updated successfully"))
 })
 
 //getCurrentUser,updateAccountDetails,changeCurrentPassword to hame kaise req.body ka access yahan mil raha hai to ye hame jab ham in function ko use karenge to jwt.verify ko pehle 
@@ -353,7 +353,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
    return res
    .status(200)
    .json(
-    new ApiResponse(200,user,"coverImage Updated succefully")
+    new ApiResponse(200,user,"Cover image updated successfully")
    )
 
 
@@ -478,7 +478,16 @@ const getWatchedHistory = asyncHandler(async (req, res) => {
 })
 
 
-
-
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getCurrentUser,
-  updateAccountDetails,updateUserAvatar,updateUserCoverImage,getUserChannelProfile,getWatchedHistory}; 
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    changeCurrentPassword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchedHistory
+}

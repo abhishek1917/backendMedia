@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
-const videoSchema =new mongoose.Schema(
+const videoSchema = new mongoose.Schema(
     {
         videoFile:{
             type:String, //clodnery url(work as aws for storing images and videos)
@@ -15,7 +15,7 @@ const videoSchema =new mongoose.Schema(
             type:String,
             required:true
         },
-        discription:{
+        description:{
             type:String,
             required:true
         },
@@ -25,11 +25,11 @@ const videoSchema =new mongoose.Schema(
         },
         views:{
             type: Number,
-            defoult:0
+            default:0
         },
         isPublished:{
             type: Boolean,
-            defoult:true
+            default:true
         },
         owner:{
             type:Schema.Types.ObjectId,
