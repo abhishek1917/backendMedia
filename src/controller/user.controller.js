@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import {User} from "../models/User.model.js"
-import uploadOnClodinary from "../utils/clodinary.uploadFile.js"
+import uploadOnCloudinary from "../utils/cloudinary.uploadFile.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken" 
 
@@ -82,8 +82,8 @@ const registerUser = asyncHandler(async (req,res)=>{
     throw new ApiError(400,"avatar image is required")
    }
 
-   const avatar= await uploadOnClodinary(avatarLocalPath) 
-   const coverImage= await uploadOnClodinary(coverImageLocalPath) 
+   const avatar= await uploadOnCloudinary(avatarLocalPath) 
+   const coverImage= await uploadOnCloudinary(coverImageLocalPath) 
 
    if(!avatar){
     throw new ApiError(400,"avatar image is required")
@@ -136,12 +136,10 @@ const loginUser = asyncHandler(async (req,res)=>{
       throw new ApiError(404,"user does not exist")
      }
 
-     const isPasswordisValid= await user.isPasswordCorrect(password);
+     const isPasswordValid = await user.isPasswordCorrect(password);
 
-     if(!isPasswordisValid){
-      console.log(isPasswordisValid)
-      console.log("boolean value",assword)
-      throw new ApiError(401,"invalid user credential mainly password is not")
+     if (!isPasswordValid) {
+      throw new ApiError(401, "Invalid user credentials")
      }
 
        const {accessToken,refreshToken} =await generateAccessandRefreshTokens(user._id)
@@ -220,10 +218,10 @@ const refreshAccessToken =asyncHandler(async (req,res)=>{
    secure:true
   }
     
-   const {accessToken,newRefreshToken} = generateAccessandRefreshTokens(user?._id)
+   const {accessToken,newRefreshToken} = await generateAccessandRefreshTokens(user?._id)
  
    return res
-   .secure(200)
+   .status(200) // Fixed: was .secure(200)
    .cookie("accessToken",accessToken,options)
    .cookie("refreshToken",newRefreshToken,options)
    .json(
@@ -242,7 +240,7 @@ const refreshAccessToken =asyncHandler(async (req,res)=>{
 const changeCurrentPassword =asyncHandler(async (req,res)=>{
   const {oldPassword,newPassword}=req.body //ye dono hame user se milenge
   
-  const user = User.findById(req.user?._id)
+  const user = await User.findById(req.user?._id) // Added await
 
   const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
   if(!isPasswordCorrect){
@@ -280,7 +278,7 @@ const updateAccountDetails =asyncHandler(async (req,res)=>{
       throw new ApiError(400,"all field are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
       req.user?._id,
       {
         $set: {
@@ -298,36 +296,32 @@ const updateAccountDetails =asyncHandler(async (req,res)=>{
 //pre function  use karenge jaise ki hamne yahan kiya hai ****router.route("/logout").post(verifyJWT,logoutUser)****   verifyJWT ye hame access deta hai user ka .
  
 
-const updateUserAvatar = asyncHandler(async (req,res)=>{
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path // Fixed: should be req.file not req.files
 
-  const avatarLocalPath = req.files?.avatar[0]?.path
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing")
+    }
 
-  if(!avatarLocalPath){
-    throw new ApiError(401,"there is no local file path for avatar")
-  }
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
 
-  const avatar = await uploadOnClodinary(avatarLocalPath);
+    if (!avatar.url) {
+        throw new ApiError(400, "Error while uploading avatar")
+    }
 
-  if(!avatar.url){
-    throw new ApiError(401,"error while uploading avatar")
-  }
-  
-   const user = await User.findByIdAndUpdate(
-    req.user?._id,
-    {
-      $set:{
-        avatar:avatar.url
-      }
-    },
-    {new: true}
-   ).select("-password")
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        { new: true }
+    ).select("-password")
 
-    
-   return res
-   .status(200)
-   .json(
-    new ApiResponse(200,user,"avatar Updated succefully")
-   )
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user, "Avatar updated successfully"))
 })
 
 const updateUserCoverImage = asyncHandler(async (req,res)=>{
@@ -339,7 +333,7 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
     throw new ApiError(401,"there is no local file path missing cover image")
   }
 
-  const coverImage = await uploadOnClodinary(coverImageLocalPath);
+  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
   if(!coverImage.url){
     throw new ApiError(401,"error while uploading cover image")
@@ -366,143 +360,121 @@ const updateUserCoverImage = asyncHandler(async (req,res)=>{
 })
 
 
-const getUserChannelProfile = asyncHandler(async (req,res)=>{
-  const username = req.params 
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params // Fixed: extract username properly
 
-  if(!username?.trim()){
-    throw new ApiError (
-      401,"username does not exist "
-    )
-  }
-
-  const channel = User.aggregate(
-    [
-      {
-        $match:{
-          username:username.toLowerCase()
-        }
-      },
-      {
-            $lookup:{
-              from:"subscription",
-              localField:_id,
-              foreignField:"subscriber",
-              as:"subscriberTo"
-            }
-      },
-      {
-        $addFields:{
-          subscribersCount:{
-            $size:"$subscribers"
-          },
-          channelSubscribeTocount:{
-            $size:"$subscriberTo"
-          },
-          isSubscribed:{
-            $cond:{
-              if:{$in:[req.user?._id,"$subscribers.subscriber"]},
-              then:true,
-              else:false
-            }
-          }
-       }
-      },
-
-      {
-        $project:{
-          fullname:1,
-          username:1,
-          subscribersCount:1,
-          channelSubscribeTocount:1,
-          avatar:1,
-          coverImage:1,
-          email:1
-        }
-      }
-    ]
-  )
-
-
-  if(!channel.length){
-    throw new ApiError(401,"channel does not exist")
-  }
-
-  return res
-  .status(200
-  .json(
-    new ApiResponse(
-      200,
-      channel[0],
-      "user channel fetched succefully"
-    )
-  )
-  )
-
-})
-
-
-const getWatchedHistory =asyncHandler(async (req,res)=>{
-  const user =await User.aggregate([
-    {
-      $match :{
-        _id: new mongoose.Types.ObejectId(req.user._id)   //kis model ki id ka use karke hame connect karna hai apni pipeline ko
-      }
-    },
-    {
-      $lookup:{
-        from:"video",   //kis model me look up karna hai ya dekhna hai
-        localField: "watchHistory",  //kis local field ko hame obsever karna hai jo bhi madel me hum look up kar rahen hai
-        foreignField:"_id" , //upside field kya hai hamari
-        as:"watchHistory",   //abb hame ye sara document mil gaya hai or hum use nam dete hai watch history
-             
-          //yahan par hamare pas watchhistory me videos  ka ek document ban gaya hai jo ki watch history me store hai but hame chahiye kya ki hum owner ka data chahiye to wo to owner ke  ke andar store hai (objectid user) ke form me jo basically user hi hai
-          //yahan hum log inbuild pipeline ka istemal karenge  owner ke andar se user  ko access karne ke liye
-
-          pipeline:[
-            {
-              $lookup:{
-                 from:"users",
-                 localField:"owner",
-                 foreignField:"_id",
-                 as:"owner",
-                 pipeline:[
-                      {   //yahan hum log ise bahar bhi likh sakte the magar yahan par hum ye dekh rahe hai ki jo hamara owner field hai usme data bahit sara hai use controll karna seekh rahe hai
-                        $project:{
-                          fullname:1,
-                          username:1,
-                          avatar:1,
-                        }
-                      }
-                 ]
-              }
-            } ,
-            //sara deta owner ke field me hai or yahan mere pass array aya hai or hum us array ko sudharna chahte hai
-            {
-              $addFields:{
-                //yahan humne iska nam owner rakhan hai kuch or bhi rakh sakte hai magar agar humne nam same hi rahan hai to ye over ride ho jayega 
-                  owner:{
-                    $first:"$owner"  //yahan hum log first element nikal rahen hai 
-                  }
-              }
-            }
-          ]
-
-     
-     
-      }
+    if (!username?.trim()) {
+        throw new ApiError(401, "Username does not exist")
     }
 
-  ])
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username: username.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions", // Fixed: should be plural
+                localField: "_id", // Fixed: missing quotes
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber", 
+                as: "subscribedTo"
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                fullname: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
 
-  return res
-  .status(200)
-  .json(
-    new ApiResponse(
-      200,
-      user[0].watchHistory ,
-      "watch history fetch succefully"
-    )
-  )
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exist")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, channel[0], "User channel fetched successfully"))
+})
+
+const getWatchedHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullname: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully"))
 })
 
 

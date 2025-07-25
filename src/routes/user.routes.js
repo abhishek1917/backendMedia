@@ -33,26 +33,26 @@ router.route("/login").post(loginUser)
 
 router.route("/logout").post(verifyJWT,logoutUser)
 
-router.route("./refresh-token").post(refreshAccessToken)
+router.route("/refresh-token").post(refreshAccessToken)
 
-router.route("./change-password").post(verifyJWT,changeCurrentPassword)
+router.route("/change-password").post(verifyJWT, changeCurrentPassword)
 
-router.route("./current-user").get(verifyJWT,getCurrentUser)
+router.route("/current-user").get(verifyJWT, getCurrentUser)
 
-router.route("./update-accout").patch(verifyJWT,updateAccountDetails)
+router.route("/update-account").patch(verifyJWT, updateAccountDetails)
 
-router.route("./avatra-update").patch(verifyJWT,upload.single("avatar"),updateUserAvatar)
+router.route("/avatar-update").patch(verifyJWT, upload.single("avatar"), updateUserAvatar)
 
-router.route("./coverImage-update").patch(verifyJWT,upload.single("coverIage"),updateUserCoverImage)
+router.route("/coverImage-update").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage)
 
 //upload.single("coverIage") ye multer ka ek function hai jo sirf single file ko upload karne ke liye use hota hai or bracket me sirf or sirf nam hai jo hum kuch bhi rakh sakte hai
 
 
-router.route("./channel/:username").get(verifyJWT,getUserChannelProfile)
+router.route("/channel/:username").get(verifyJWT, getUserChannelProfile)
 //yahan jo username hai vo same hona chahiye apne function ka or hum isme : (collans use karenge)
 
 
-router.route("./history").get(verifyJWT,getWatchedHistory)
+router.route("/history").get(verifyJWT, getWatchedHistory)
 
 
 
