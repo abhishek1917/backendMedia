@@ -6,7 +6,7 @@ export const ROUTES = {
   PROFILE: '/profile'
 }
 
-export const API_BASE_URL = 'http://localhost:8000/api/v1'
+export const API_BASE_URL = 'http://localhost:5000/api/v1'
 
 export const API_ENDPOINTS = {
   AUTH: {
@@ -23,6 +23,7 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: 'refreshToken',
   USER: 'user'
 }
+
 
 
 
