@@ -13,14 +13,18 @@ if (!process.env.MONGODB_URI) {
     process.exit(1);
 }
 
+const PORT = process.env.PORT || 5000;
+
 connectDB()
 .then(() => {
-    app.listen(process.env.PORT || 5000, () => {
-        console.log(`Server is running at port: ${process.env.PORT || 5000}`)
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`✅ Server is running at http://localhost:${PORT}`)
+        console.log(`✅ API available at http://localhost:${PORT}/api/v1`)
+        console.log(`✅ Test endpoint: http://localhost:${PORT}/test`)
     })
 })
 .catch((err) => {
-    console.log(`MongoDB connection error: ${err}`)
+    console.log(`❌ MongoDB connection error: ${err}`)
     process.exit(1)
 })
 
